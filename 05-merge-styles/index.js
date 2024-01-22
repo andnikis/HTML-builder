@@ -1,9 +1,19 @@
 const fsp = require('fs').promises;
+const fs = require('fs');
 const path = require('path');
 
 async function isDirectory(path) {
   const stats = await fsp.stat(path);
   return stats.isDirectory();
+}
+
+async function fileExists(path) {
+  try {
+    await fsp.access(path, fs.constants.F_OK);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 async function mergeStyles(source, bundleFile) {
@@ -24,14 +34,18 @@ async function mergeStyles(source, bundleFile) {
     if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.css') {
       const cssFile = path.join(source, entry.name);
       const text = await fsp.readFile(cssFile, 'utf8');
+      // styles can be sorted so it's possible to read content immediately
       allCssFiles.push({ name: entry.name, text });
     }
   }
-  // merge css in order: style-1 + style-2 + style-3
+  // to merge css in order: style-1 + style-2 + style-3
   allCssFiles.sort((a, b) => a.name.localeCompare(b.name));
-  const text = allCssFiles.reduce((acc, val) => acc + val.text, '');
-  // overwrite or create bundleFile
-  await fsp.writeFile(bundleFile, text, 'utf8');
+  // delete old bundleFile if it exists
+  if (await fileExists(bundleFile)) await fsp.unlink(bundleFile);
+  // copy all styles in one file
+  for (const cssFile of allCssFiles) {
+    await fsp.appendFile(bundleFile, cssFile.text, 'utf8');
+  }
 }
 
 const sourceDir = path.join(__dirname, 'styles');
