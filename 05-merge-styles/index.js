@@ -2,8 +2,8 @@ const fsp = require('fs').promises;
 const fs = require('fs');
 const path = require('path');
 
-async function isDirectory(path) {
-  const stats = await fsp.stat(path);
+async function isDirectory(folder) {
+  const stats = await fsp.stat(folder);
   return stats.isDirectory();
 }
 
@@ -16,13 +16,18 @@ async function fileExists(path) {
   }
 }
 
+async function folderExists(folder) {
+  try {
+    return await isDirectory(folder);
+  } catch {
+    return false;
+  }
+}
+
 async function mergeStyles(source, bundleFile) {
   // check that source exists
-  try {
-    const isSourceDir = await isDirectory(source);
-    if (!isSourceDir) throw Error('Source directory does not exists');
-  } catch {
-    console.error(`Source directory "${source}" does not exist.`);
+  if (!(await folderExists(source))) {
+    console.error(`Folder "${source}" does not exist.`);
     return;
   }
 
