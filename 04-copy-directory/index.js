@@ -1,8 +1,8 @@
-const fs = require('fs').promises;
+const fsp = require('fs').promises;
 const path = require('path');
 
 async function isDirectory(path) {
-  const stats = await fs.stat(path);
+  const stats = await fsp.stat(path);
   return stats.isDirectory();
 }
 
@@ -20,25 +20,25 @@ async function copyDir(source, target) {
   try {
     const isTargetDir = await isDirectory(target).catch(() => undefined);
     // target directory exists, delete it
-    if (isTargetDir) await fs.rm(target, { recursive: true, force: true });
+    if (isTargetDir) await fsp.rm(target, { recursive: true, force: true });
     // target exists but it's not a directory, delete it
     else if (isTargetDir === false) {
       console.error(`There is "${target}" entry and it is not a folder.`);
-      await fs.rm(target, { recursive: true, force: true });
+      await fsp.rm(target, { recursive: true, force: true });
     }
   } finally {
-    await fs.mkdir(target, { recursive: true });
+    await fsp.mkdir(target, { recursive: true });
   }
 
   // get all files and folders from source
-  const entries = await fs.readdir(source, { withFileTypes: true });
+  const entries = await fsp.readdir(source, { withFileTypes: true });
 
   for (const entry of entries) {
     const sourcePath = path.join(source, entry.name);
     const targetPath = path.join(target, entry.name);
 
     if (entry.isFile()) {
-      await fs.copyFile(sourcePath, targetPath);
+      await fsp.copyFile(sourcePath, targetPath);
     } else if (entry.isDirectory()) {
       await copyDir(sourcePath, targetPath);
     }

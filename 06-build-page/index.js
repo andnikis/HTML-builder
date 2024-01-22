@@ -1,8 +1,8 @@
-const fs = require('fs').promises;
+const fsp = require('fs').promises;
 const path = require('path');
 
 async function isDirectory(path) {
-  const stats = await fs.stat(path);
+  const stats = await fsp.stat(path);
   return stats.isDirectory();
 }
 
@@ -20,25 +20,25 @@ async function copyDir(source, target) {
   try {
     const isTargetDir = await isDirectory(target).catch(() => undefined);
     // target directory exists, delete it
-    if (isTargetDir) await fs.rm(target, { recursive: true, force: true });
+    if (isTargetDir) await fsp.rm(target, { recursive: true, force: true });
     // target exists but it's not a directory, delete it
     else if (isTargetDir === false) {
       console.error(`There is "${target}" entry and it is not a folder.`);
-      await fs.rm(target, { recursive: true, force: true });
+      await fsp.rm(target, { recursive: true, force: true });
     }
   } finally {
-    await fs.mkdir(target, { recursive: true });
+    await fsp.mkdir(target, { recursive: true });
   }
 
   // get all files and folders from source
-  const entries = await fs.readdir(source, { withFileTypes: true });
+  const entries = await fsp.readdir(source, { withFileTypes: true });
 
   for (const entry of entries) {
     const sourcePath = path.join(source, entry.name);
     const targetPath = path.join(target, entry.name);
 
     if (entry.isFile()) {
-      await fs.copyFile(sourcePath, targetPath);
+      await fsp.copyFile(sourcePath, targetPath);
     } else if (entry.isDirectory()) {
       await copyDir(sourcePath, targetPath);
     }
@@ -57,12 +57,12 @@ async function mergeStyles(source, bundleFile) {
 
   // {name: file name, text: file content}
   const allCssFiles = [];
-  const entries = await fs.readdir(source, { withFileTypes: true });
+  const entries = await fsp.readdir(source, { withFileTypes: true });
 
   for (const entry of entries) {
     if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.css') {
       const cssFile = path.join(source, entry.name);
-      const text = await fs.readFile(cssFile, 'utf8');
+      const text = await fsp.readFile(cssFile, 'utf8');
       allCssFiles.push({ name: entry.name, text });
     }
   }
@@ -70,18 +70,18 @@ async function mergeStyles(source, bundleFile) {
   allCssFiles.sort((a, b) => a.name.localeCompare(b.name));
   const text = allCssFiles.reduce((acc, val) => acc + val.text, '');
   // overwrite or create bundleFile
-  await fs.writeFile(bundleFile, text, 'utf8');
+  await fsp.writeFile(bundleFile, text, 'utf8');
 }
 
 async function replaceTemplateTags(fileName, templateDir) {
-  let html = await fs.readFile(fileName, 'utf8');
+  let html = await fsp.readFile(fileName, 'utf8');
 
   const allTemplateFiles = new Map();
-  const entries = await fs.readdir(templateDir, { withFileTypes: true });
+  const entries = await fsp.readdir(templateDir, { withFileTypes: true });
   // find all templates
   for (const entry of entries) {
     if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.html') {
-      const templateText = await fs.readFile(
+      const templateText = await fsp.readFile(
         path.join(templateDir, entry.name),
         'utf8',
       );
@@ -121,7 +121,7 @@ async function buildPage() {
   const templateDir = path.join(__dirname, COMPONENTS_FOLDER);
   const indexHtml = await replaceTemplateTags(templateHtml, templateDir);
   // overwrite or create project-dist/index.html
-  await fs.writeFile(
+  await fsp.writeFile(
     path.join(__dirname, DIST_FOLDER, 'index.html'),
     indexHtml,
     'utf8',
