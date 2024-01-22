@@ -7,9 +7,9 @@ async function isDirectory(folder) {
   return stats.isDirectory();
 }
 
-async function fileExists(path) {
+async function fileExists(file) {
   try {
-    await fsp.access(path, fs.constants.F_OK);
+    await fsp.access(file, fs.constants.F_OK);
     return true;
   } catch (error) {
     return false;
@@ -39,7 +39,7 @@ async function mergeStyles(source, bundleFile) {
     if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.css') {
       const cssFile = path.join(source, entry.name);
       const text = await fsp.readFile(cssFile, 'utf8');
-      // styles can be sorted so it's possible to read content immediately
+      // styles can be sorted or combined so it's possible to read content immediately
       allCssFiles.push({ name: entry.name, text });
     }
   }
@@ -47,7 +47,7 @@ async function mergeStyles(source, bundleFile) {
   allCssFiles.sort((a, b) => a.name.localeCompare(b.name));
   // delete old bundleFile if it exists
   if (await fileExists(bundleFile)) await fsp.unlink(bundleFile);
-  // copy all styles in one file
+  // copy all css styles in one file
   for (const cssFile of allCssFiles) {
     await fsp.appendFile(bundleFile, cssFile.text, 'utf8');
   }
