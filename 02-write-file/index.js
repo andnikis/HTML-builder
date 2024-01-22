@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-const fileName = path.join(__dirname, 'input.txt');
+const fileName = path.join(__dirname, 'text.txt');
 const writeStream = fs.createWriteStream(fileName, 'utf8');
 
 writeStream.on('error', (err) => {
@@ -12,8 +12,8 @@ writeStream.on('error', (err) => {
 const readln = readline.createInterface(process.stdin, process.stdout);
 console.log('Input your text: ');
 
-const closeScript = (text = '') => {
-  console.log(`${text}Goodbye!`);
+const closeScript = () => {
+  console.log('Goodbye!');
   readln.close();
   process.exit();
 };
@@ -27,5 +27,5 @@ readln.on('line', (input) => {
 });
 
 readln.on('SIGINT', () => {
-  closeScript('CTRL/CMD+C is pressed. ');
+  closeScript();
 });
