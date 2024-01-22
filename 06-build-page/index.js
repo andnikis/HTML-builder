@@ -1,4 +1,5 @@
 const fsp = require('fs').promises;
+const fs = require('fs');
 const path = require('path');
 
 async function isDirectory(path) {
@@ -6,26 +7,38 @@ async function isDirectory(path) {
   return stats.isDirectory();
 }
 
+async function fileExists(file) {
+  try {
+    await fsp.access(file, fs.constants.F_OK);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function folderExists(folder) {
+  try {
+    return await isDirectory(folder);
+  } catch {
+    return false;
+  }
+}
+
 async function copyDir(source, target) {
   // check that source exists
-  try {
-    const isSourceDir = await isDirectory(source);
-    if (!isSourceDir) throw Error('Source directory does not exists');
-  } catch {
-    console.error(`Source directory "${source}" does not exist.`);
+  if (!(await folderExists(source))) {
+    console.error(`Folder "${source}" does not exist.`);
     return;
   }
 
-  // delete target if it exists and create it again
+  // create target folder
   try {
-    const isTargetDir = await isDirectory(target).catch(() => undefined);
-    // target directory exists, delete it
-    if (isTargetDir) await fsp.rm(target, { recursive: true, force: true });
-    // target exists but it's not a directory, delete it
-    else if (isTargetDir === false) {
-      console.error(`There is "${target}" entry and it is not a folder.`);
+    // target exists, delete it
+    if (await folderExists(target)) {
       await fsp.rm(target, { recursive: true, force: true });
     }
+  } catch {
+    // !stop LiveServer, as it may block the deletion of the folder
   } finally {
     await fsp.mkdir(target, { recursive: true });
   }
@@ -47,11 +60,8 @@ async function copyDir(source, target) {
 
 async function mergeStyles(source, bundleFile) {
   // check that source exists
-  try {
-    const isSourceDir = await isDirectory(source);
-    if (!isSourceDir) throw Error('Source directory does not exists');
-  } catch {
-    console.error(`Source directory "${source}" does not exist.`);
+  if (!(await folderExists(source))) {
+    console.error(`Folder "${source}" does not exist.`);
     return;
   }
 
@@ -63,14 +73,18 @@ async function mergeStyles(source, bundleFile) {
     if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.css') {
       const cssFile = path.join(source, entry.name);
       const text = await fsp.readFile(cssFile, 'utf8');
+      // styles can be sorted or combined so it's possible to read content immediately
       allCssFiles.push({ name: entry.name, text });
     }
   }
-  // merge css in order: style-1 + style-2 + style-3
+  // to merge css in order: style-1 + style-2 + style-3
   allCssFiles.sort((a, b) => a.name.localeCompare(b.name));
-  const text = allCssFiles.reduce((acc, val) => acc + val.text, '');
-  // overwrite or create bundleFile
-  await fsp.writeFile(bundleFile, text, 'utf8');
+  // delete old bundleFile if it exists
+  if (await fileExists(bundleFile)) await fsp.unlink(bundleFile);
+  // copy all css styles in one file
+  for (const cssFile of allCssFiles) {
+    await fsp.appendFile(bundleFile, cssFile.text, 'utf8');
+  }
 }
 
 async function replaceTemplateTags(fileName, templateDir) {
@@ -101,33 +115,49 @@ async function replaceTemplateTags(fileName, templateDir) {
   return html.replaceAll(regexp, onReplaceTemplateTag);
 }
 
-const DIST_FOLDER = 'project-dist';
-const ASSETS_FOLDER = 'assets';
-const COMPONENTS_FOLDER = 'components';
-const CSS_FOLDER = 'styles';
-
-async function buildPage() {
-  let sourceDir = path.join(__dirname, ASSETS_FOLDER);
-  const assetsDir = path.join(__dirname, DIST_FOLDER, ASSETS_FOLDER);
+async function buildPage(sourcePath, targetPath) {
+  let sourceDir = path.join(__dirname, sourcePath.assetsFolder);
+  const assetsDir = path.join(
+    __dirname,
+    sourcePath.distFolder,
+    sourcePath.assetsFolder,
+  );
   // create project-dist folder and copy there assets folder
   await copyDir(sourceDir, assetsDir);
 
-  sourceDir = path.join(__dirname, CSS_FOLDER);
-  const bundleFile = path.join(__dirname, DIST_FOLDER, 'style.css');
+  sourceDir = path.join(__dirname, sourcePath.cssFolder);
+  const bundleFile = path.join(
+    __dirname,
+    sourcePath.distFolder,
+    targetPath.cssFile,
+  );
   // create style.css frome styles folder
   await mergeStyles(sourceDir, bundleFile);
 
-  const templateHtml = path.join(__dirname, 'template.html');
-  const templateDir = path.join(__dirname, COMPONENTS_FOLDER);
+  const templateHtml = path.join(__dirname, targetPath.templateFile);
+  const templateDir = path.join(__dirname, sourcePath.componentsFolder);
   const indexHtml = await replaceTemplateTags(templateHtml, templateDir);
   // overwrite or create project-dist/index.html
   await fsp.writeFile(
-    path.join(__dirname, DIST_FOLDER, 'index.html'),
+    path.join(__dirname, sourcePath.distFolder, targetPath.outputFile),
     indexHtml,
     'utf8',
   );
 }
 
-buildPage();
+const sourcePath = {
+  distFolder: 'project-dist',
+  assetsFolder: 'assets',
+  componentsFolder: 'components',
+  cssFolder: 'styles',
+};
+
+const targetPath = {
+  cssFile: 'style.css',
+  templateFile: 'template.html',
+  outputFile: 'index.html',
+};
+
+buildPage(sourcePath, targetPath);
 
 process.on('uncaughtException', (err) => console.error(err));
