@@ -6,24 +6,25 @@ async function isDirectory(path) {
   return stats.isDirectory();
 }
 
+async function folderExists(folder) {
+  try {
+    return await isDirectory(folder);
+  } catch {
+    return false;
+  }
+}
+
 async function copyDir(source, target) {
   // check that source exists
-  try {
-    const isSourceDir = await isDirectory(source);
-    if (!isSourceDir) throw Error('Source directory does not exists');
-  } catch {
-    console.error(`Source directory "${source}" does not exist.`);
+  if (!(await folderExists(source))) {
+    console.error(`Folder "${source}" does not exist.`);
     return;
   }
 
-  // delete target if it exists and create it again
+  // create target folder
   try {
-    const isTargetDir = await isDirectory(target).catch(() => undefined);
-    // target directory exists, delete it
-    if (isTargetDir) await fsp.rm(target, { recursive: true, force: true });
-    // target exists but it's not a directory, delete it
-    else if (isTargetDir === false) {
-      console.error(`There is "${target}" entry and it is not a folder.`);
+    // target exists, delete it
+    if (await folderExists(target)) {
       await fsp.rm(target, { recursive: true, force: true });
     }
   } finally {
