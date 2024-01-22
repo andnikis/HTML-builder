@@ -108,7 +108,7 @@ async function replaceTemplateTags(fileName, templateDir) {
   function onReplaceTemplateTag(match, templateName) {
     const templateText = allTemplateFiles.get(templateName.toLowerCase());
     if (templateText !== undefined) return templateText;
-    throw Error(`Template tag "${templateName}" does not exist.`);
+    throw Error(`Template component "${templateName}" does not exist.`);
   }
 
   const regexp = new RegExp('\\{\\{([^}]+)\\}\\}', 'g');
