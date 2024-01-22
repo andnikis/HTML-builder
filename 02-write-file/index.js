@@ -12,8 +12,12 @@ writeStream.on('error', (err) => {
 const readln = readline.createInterface(process.stdin, process.stdout);
 console.log('Input your text: ');
 
+let farewellShowed = false;
 const closeScript = () => {
-  console.log('Goodbye!');
+  if (!farewellShowed) {
+    console.log('Goodbye!');
+    farewellShowed = true;
+  }
   readln.close();
   process.exit();
 };
@@ -22,10 +26,15 @@ readln.on('line', (input) => {
   if (input === 'exit') {
     closeScript();
   } else {
-    writeStream.write(`${input}\n`);
+    writeStream.write(input);
   }
 });
 
 readln.on('SIGINT', () => {
+  closeScript();
+});
+
+// just in case
+process.on('SIGINT', () => {
   closeScript();
 });
