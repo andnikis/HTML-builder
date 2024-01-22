@@ -12,20 +12,20 @@ writeStream.on('error', (err) => {
 const readln = readline.createInterface(process.stdin, process.stdout);
 console.log('Input your text: ');
 
-const closeScript = (closeReadln, text = '') => {
+const closeScript = (text = '') => {
   console.log(`${text}Goodbye!`);
-  if (closeReadln) readln.close();
+  readln.close();
   process.exit();
 };
 
 readln.on('line', (input) => {
   if (input === 'exit') {
-    closeScript(true);
+    closeScript();
   } else {
     writeStream.write(`${input}\n`);
   }
 });
 
 readln.on('SIGINT', () => {
-  closeScript(false, 'CTRL+C is pressed. ');
+  closeScript('CTRL/CMD+C is pressed. ');
 });
