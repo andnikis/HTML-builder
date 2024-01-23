@@ -7,8 +7,11 @@ async function printFilesInformation(dirName) {
   for (const item of items) {
     if (item.isFile()) {
       const stats = await fsp.stat(path.join(dirName, item.name));
+      const ext = path.extname(item.name);
       console.log(
-        `${item.name} - ${path.extname(item.name).slice(1)} - ${stats.size}b`,
+        `${item.name.slice(0, item.name.length - ext.length)} - ${ext.slice(
+          1,
+        )} - ${stats.size}b`,
       );
     }
   }
