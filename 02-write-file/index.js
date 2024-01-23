@@ -26,7 +26,7 @@ readln.on('line', (input) => {
   if (input === 'exit') {
     closeScript();
   } else {
-    writeStream.write(input);
+    writeStream.write(`${input}\n`);
   }
 });
 
